@@ -60,6 +60,8 @@ Check every channel through which a rater, or their browser, could learn which c
 
 **L1. Names in visible text or attributes.** Model/system names in titles, alt text, captions, `title=` tooltips, CSS class names, or React keys that render. Spot by grepping for each condition name in the UI source and in the data files the UI reads.
 
+**L1b. Masking that only works in some modes.** A masking function that replaces the condition name in a display string works for single-condition links but silently does nothing in a mixed/interleaved mode (e.g. it replaces `metadata.model`, which is `"mixed"`, so `FLUX_...` folder names pass through). Debug-ish lines like "Stimuli ID: <folder>/<file>" in headers are a common culprit. Check each display string in every survey mode the links can open, not just the one the code was first written for.
+
 **L2. Names in URLs and file names.** Image `src` like `.../flux/img_12.png`, `?model=sdxl` in the survey link, or file names with the model in them. Raters hover, right-click "open image", or read the link they were sent. Fix: opaque IDs for assets and links; the mapping lives server-side or in a separate table.
 
 **L3. Embedded metadata.** PNG text chunks and EXIF can contain the generator, sampler, seed, and even the prompt (Stable Diffusion UIs write `parameters` chunks; some services add C2PA/watermarks). Anyone who downloads or inspects the image can see it, and a few raters will. Spot: check a sample image with `exiftool` or a PNG chunk reader; check whether the code strips metadata. Fix: re-encode and strip metadata for all conditions in the same way.
@@ -75,6 +77,10 @@ Check every channel through which a rater, or their browser, could learn which c
 **O2. Stimulus position not counterbalanced or not logged.** Left/right or top/bottom placement of the stimulus vs the reference, or of system A vs B in pairwise tasks, biases attention and preference (left/first is often favored). Randomizing it is good; randomizing it without storing the realized position makes the bias impossible to check. Spot `Math.random()` near layout state and check whether the result is saved. Also check that randomization is stable across re-renders and revisits.
 
 **O3. Item order not randomized, or randomization not recorded.** Fatigue and learning make early and late items systematically different. Fix: randomize per participant with a recorded seed and store the trial index with each response. Check that the seed actually differs per participant (not e.g. constant when an ID is missing) and that "deterministic shuffle" uses a real PRNG, not `sort(() => Math.random() - 0.5)` which is biased.
+
+**O3b. Broken PRNG or seed hashing.** Hand-written seeded generators (mulberry32, LCGs, string hashes) are often slightly wrong: a missing unsigned shift or a wrong divisor that limits output to [0, 0.5), a hash that collides for similar IDs. A shuffle built on them is then far from uniform, and the first or last items of each pool are systematically over- or under-selected. Check by sampling the generator and by simulating the selection (see SKILL.md step 3).
+
+**O3c. Condition or domain tied to session position.** Even with per-participant shuffling, a construction like "shuffle within domain, concatenate, shuffle again with a weak generator" can leave one domain or condition mostly at the end of the session, where fatigue is highest. Check the average position of each condition and domain across simulated participants.
 
 **O4. Scale option order.** Options listed left-to-right (or top-to-bottom on mobile) have a primacy pull. Small effect; usually just keep one direction consistent (S8). Flag if desktop and mobile layouts flip direction or orientation.
 
@@ -104,6 +110,10 @@ Check every channel through which a rater, or their browser, could learn which c
 
 **D4. Missing context in the stored record.** Without these, many biases above can't be checked after the fact: participant ID, item/stimulus ID, true condition, displayed position (left/right), trial index, dimension order, whether a reference was shown and which one, timestamp per rating (for time-on-item), revision count, device/viewport, image load success, app version/commit.
 
+**D4b. Items paired across conditions by position.** Counterbalancing designs (Latin square: same prompt, different model per group) need a stable identity for "the same prompt". If each condition's stimuli come from a separately generated file and the code pairs `files[modelA][i]` with `files[modelB][i]`, any difference in file order means different prompts are treated as the same one: the stored prompt ID is wrong, prompts aren't balanced, and a participant can see the same subject twice from two models. Pair by a real ID or by normalized prompt text, and assert alignment at load time.
+
+**D4c. Resume and navigation edge cases.** After a reload, is an item with some but not all ratings treated as done? Does going back, editing, and going forward restore the old value? Does deselecting a choice leave the old value in the database? Does looking up progress by a typed name break on apostrophes, capitalization, or a second device? Test these in the running app if you can.
+
 **D5. Identity and session problems.** Participant IDs typed by hand (typos split one person into two), names used as IDs, the same link usable by two people, or a refresh starting a new session with a new randomization.
 
 **D6. Debug output and leftover dev features.** `console.log` of stimulus metadata (model names, file paths) visible in devtools, admin routes reachable from participant links, test data mixed into the production collection.
@@ -117,6 +127,8 @@ Check every channel through which a rater, or their browser, could learn which c
 **P3. Rater count per cell.** Very few raters per culture/condition means rater effects dominate. Not a UI issue, but it determines how much the UI biases matter, so note it in the design summary.
 
 **P4. Instructions and consent.** Instructions should define every construct, say how to use references/prompts, explain N/A, and give the expected time. Consent should say what's recorded. Check that what's recorded (D4) matches what consent says.
+
+**P5. Consent and invitation text describing a different study.** Copy written early often goes stale: wrong number of items, wrong duration, a scale format that's no longer used ("Strongly disagree … Strongly agree"), a promise that the name is optional or the data anonymous. Raters calibrate effort to the stated length, and a false anonymity claim is an ethics problem. Compare every number and promise in consent, invitations, and onboarding with the actual app.
 
 ## A. Device, display, accessibility
 

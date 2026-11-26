@@ -7,6 +7,8 @@ For each field, record one of:
 - **inferable**: the answer can be worked out from code or data but isn't written down (cite where, and give the answer you inferred)
 - **missing**: neither
 
+A fourth status, **conflict**, is useful when the docs say one thing and the code or data another (e.g. the paper says raters were blind but the UI shows model names; the plan says 9 cultures but the data has 8). List conflicts first: they're decisions the authors have to make before the datasheet can be written honestly.
+
 Present the result as a table. The point is to tell the team what they'll have to write up later and what they can still decide now; several fields (e.g. how a criterion is defined, what raters were told) are much easier to fix before launch than to reconstruct after.
 
 ## 1. Resources
@@ -46,6 +48,8 @@ Present the result as a table. The point is to tell the team what they'll have t
 - How many times each item was rated, and overlap between raters
 
 ## 4. Quality criteria (repeat for each criterion rated)
+
+Write a separate block for each criterion, even when most answers are the same, because HEDS repeats this section per criterion and reviewers compare criteria block by block. A shared table with one column per criterion is fine as a summary, but don't use it in place of the blocks.
 
 ### Criterion properties
 - Name as used in the paper, and the label shown to raters (they often differ — note both)

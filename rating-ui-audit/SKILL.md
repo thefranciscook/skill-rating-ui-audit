@@ -30,6 +30,8 @@ Before looking at any UI, find out what's being compared and how the analysis wi
 
 If none of this is written down, infer it from the code and say that you inferred it. You need it to judge severity.
 
+Also find out whether data has already been collected: look for exports, cohort or participant files, analysis notebooks, incident notes, dated result folders. "Pre-launch" is often really "before the next wave". If earlier waves exist, two things change. Some bugs have already affected collected data, so say which, and how to recover it if possible (e.g. from a change log). And rewording items or changing the design now creates a second instrument, so recommend recording a design/scale version on every response and deciding up front whether waves will be pooled.
+
 ### 2. Build the instrument inventory
 
 Record exactly what a rater sees, verbatim, with `file:line` for every item. Quote copy exactly; paraphrasing hides the wording problems you're looking for.
@@ -49,6 +51,19 @@ For each rating, follow the value from the input element to storage. UI bugs tha
 - What happens on back-navigation, revisits, refresh, double clicks, network failure? Can a revisit overwrite an earlier answer or create a duplicate?
 - Can the rater advance with missing answers or an unloaded stimulus?
 - Do randomization seeds actually differ between participants, and is the realized order recorded?
+- What is the record's unique key, and can two different items share it? A file name or index that repeats across conditions (the same `image_00001.png` under each model's folder) makes one item's rating overwrite another's.
+
+Client code alone can mislead about what's stored. Backends coerce values (a `null` sent to a numeric column often comes back as `0`), drop unknown fields, or enforce their own uniqueness. If exports, a schema file, or migration files are in the repo, check the claim against them before reporting what's stored, and say which source you used.
+
+**Run the assignment logic; don't just read it.** Counterbalancing and shuffle code is where the worst bugs hide, and they're easy to miss by eye. Port the selection code to a short script (or run it with node) and simulate a few hundred participant IDs, including the real IDs if a cohort file has them. Check:
+
+- each participant gets the intended number of items per condition and domain, with no duplicates of the same underlying prompt/stimulus
+- items that are supposed to be "the same prompt across conditions" really are the same (pairing by array position across separately built files breaks silently when the files are in different orders)
+- every item is about equally likely to be selected, and each condition/domain is spread evenly across positions in the session (a broken PRNG or a biased shuffle shows up here)
+- every planned group or cell actually gets participants under the link-generation process
+- the overlap between raters is enough for the agreement statistic the analysis plans
+
+Report the numbers. "92% of simulated CHE participants see a repeated prompt" is much more convincing than "the pairing looks fragile".
 
 ### 4. Run the checks
 
@@ -56,7 +71,7 @@ Go through `references/anti-patterns.md`. It is organized by category (scale des
 
 ### 5. Look at it rendered, if you can
 
-Layout bias often only shows up visually: one image larger than the other, the scale below the fold, labels wrapping on phones, a color gradient on the scale. If the app can run locally (check `package.json` / README for the dev command) or a URL is given, take screenshots at a desktop size and a phone size with Playwright and walk one item. If it can't run (missing backend credentials, etc.), say so and note which checks therefore come only from reading code.
+Layout bias often only shows up visually: one image larger than the other, the scale below the fold, labels wrapping on phones, a color gradient on the scale. If the app can run locally (check `package.json` / README for the dev command) or a URL is given, take screenshots at a desktop size and a phone size with Playwright and walk one item. Run it from a copy outside the repo, and never point it at the live database: intercept backend and image requests (Playwright `page.route`) and answer them from a small in-memory fake so you can complete items, reload mid-item, go back and forward, and simulate a failed save. Those flows (resume after reload, edit then navigate, offline save) are where data loss shows up. If it can't run at all, say so and note which checks therefore come only from reading code.
 
 ### 6. HEDS completeness
 
@@ -111,6 +126,11 @@ Table: field | status (documented / inferable / missing) | source or note.
 
 ## Pre-launch checklist
 Ordered, checkable list of the fixes and the logging to add, blockers first.
+
+## Outside the UI, but found along the way
+Privacy, credentials, consent text that contradicts what is recorded. Brief, but don't drop them.
 ```
+
+Audits of real repos often turn up things that aren't rating bias but would still stop a study: participant names or emails in publicly served files, database credentials in client code, consent text that promises anonymity while names are stored. Put them in the last section, briefly, with the location. Don't let them crowd out the measurement findings, and don't skip them either.
 
 Keep the findings sections ranked by impact, not by where you found them. Group duplicates (the same label problem on three questions is one finding).
