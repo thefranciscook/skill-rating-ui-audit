@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: heds-datasheet
+expected_outcome: |
+  A HEDS-structured datasheet for the study with each field filled from the repo (citing sources) or marked as missing, plus a list of what the authors still need to supply.

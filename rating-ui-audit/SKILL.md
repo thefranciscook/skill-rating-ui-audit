@@ -1,0 +1,116 @@
+---
+name: rating-ui-audit
+description: Audits custom human-evaluation and annotation web apps (React/HTML/CSS source, UI copy, screenshots, live URLs, and protocol or paper drafts) for measurement bias before data collection. Checks rating-scale design, anchor wording, framing and anchoring effects, condition leakage (model names, file names, metadata), order and position effects, cognitive load, UI-caused data-integrity bugs, and HEDS (Human Evaluation Datasheet) reporting completeness. Use this whenever someone is about to launch a user study, crowdsourcing task, survey, preference test, or rating/labeling interface and wants to know whether the interface could bias or corrupt the data, even if they only say "review my survey", "is my Likert scale OK", "check the eval app before we send links", "will raters be biased", or "fill in HEDS for this study".
+---
+
+# Rating UI Audit
+
+A rating interface is part of the measuring instrument. Wording, scale anchors, layout, defaults, order and what the rater can see all shift responses. Most of those shifts can't be fixed after the data is in. The job here is to find them before launch and to say which ones actually matter for the comparisons the study is going to make.
+
+## What "matters" means
+
+Sort every problem into one of two kinds, because they call for different urgency:
+
+- **Confound**: the bias is correlated with a condition being compared (model A vs B, culture X vs Y, with vs without reference). This changes conclusions. Example: system A's images always load slower, or the model name appears in the image URL raters can hover over.
+- **Noise or uniform bias**: it affects every condition the same way. It shrinks effect sizes, harms reliability, or makes absolute scores hard to interpret, but leaves relative comparisons mostly intact. Example: a double-barreled question, unclear midpoint label.
+
+A confound or a data-loss bug is a launch blocker. Uniform bias is usually worth fixing if it's cheap, and worth documenting if it isn't. Saying which kind each finding is is the most useful thing the report does; a flat list of 40 "issues" is not.
+
+## Workflow
+
+### 1. Understand the study design first
+
+Before looking at any UI, find out what's being compared and how the analysis will work. Look for protocol docs, paper drafts, analysis plans, READMEs, devlogs, config files. Write down:
+
+- the constructs being rated and how they're defined
+- the conditions/factors compared (models, prompts, cultures, domains, ...)
+- the assignment scheme (between/within, Latin square, randomization, seeds)
+- raters: who, how many, recruited how, how many items each, session length
+- the planned analysis (means, mixed models, pairwise preference, agreement stats)
+
+If none of this is written down, infer it from the code and say that you inferred it. You need it to judge severity.
+
+### 2. Build the instrument inventory
+
+Record exactly what a rater sees, verbatim, with `file:line` for every item. Quote copy exactly; paraphrasing hides the wording problems you're looking for.
+
+For each rating question: construct name, question/statement text, help or tooltip text, scale type (radio, slider, pairwise, ranking, free text), number of points, every anchor label, numeric labels shown, N/A or "can't judge" option, default value, whether it's required, and its position on the screen.
+
+For the flow: consent → instructions → training/calibration examples → items → attention checks → end. Note what else is on the screen with each item (stimulus, reference, prompt text, progress, previous answers).
+
+`scripts/extract_ui_text.py <repo-or-dir>` dumps UI string literals and flags code hotspots (randomization, defaults, sliders, required/disabled logic, storage writes, possible condition names in URLs). Use it to find things quickly, then read the actual source around each hit. Don't report from the script output alone: it has false positives and misses copy built at runtime.
+
+### 3. Trace the data path
+
+For each rating, follow the value from the input element to storage. UI bugs that corrupt data are common and are invisible in the interface:
+
+- Is the stored value the same as the displayed value (off-by-one, 0- vs 1-based, normalized at save time, N/A stored as 0)?
+- Is presentation context logged: item order index, left/right position, which reference was shown, timestamps, viewport/device?
+- What happens on back-navigation, revisits, refresh, double clicks, network failure? Can a revisit overwrite an earlier answer or create a duplicate?
+- Can the rater advance with missing answers or an unloaded stimulus?
+- Do randomization seeds actually differ between participants, and is the realized order recorded?
+
+### 4. Run the checks
+
+Go through `references/anti-patterns.md`. It is organized by category (scale design, framing and anchoring, condition leakage, order and position, cognitive load, data integrity, protocol, device and accessibility). Each entry says what it looks like, why it biases, how to spot it in code, and the usual fix. Not every entry applies to every study; skip ones that don't and don't pad the report with them.
+
+### 5. Look at it rendered, if you can
+
+Layout bias often only shows up visually: one image larger than the other, the scale below the fold, labels wrapping on phones, a color gradient on the scale. If the app can run locally (check `package.json` / README for the dev command) or a URL is given, take screenshots at a desktop size and a phone size with Playwright and walk one item. If it can't run (missing backend credentials, etc.), say so and note which checks therefore come only from reading code.
+
+### 6. HEDS completeness
+
+Read `references/heds.md` and fill in each HEDS field from what the repo and docs say. Mark each field as *documented* (cite where), *inferable from code* (cite where, flag that it needs to be written down), or *missing*. Missing fields are a reporting gap, not a UI bug, so keep them out of the severity-ranked findings and give them their own section.
+
+### 7. Write the report
+
+Use the template below. Save it where the project keeps docs (check CLAUDE.md, .cursorrules, or similar for conventions such as a devlog folder); otherwise write `rating-ui-audit.md` at the repo root. If the user only asked a narrow question ("is my scale OK?"), answer that question with the relevant findings and skip the sections that don't apply.
+
+## Evidence standard
+
+Every finding needs:
+
+- **Where**: `file:line`, screenshot, or doc section.
+- **What**: the exact copy or behavior, quoted.
+- **Mechanism**: why it shifts responses, in one or two sentences. Cite the relevant effect (acquiescence, anchoring, halo, primacy, central tendency, ...) only where naming it helps.
+- **Impact**: which comparison or analysis it affects, and whether it's a confound or noise.
+- **Fix**: concrete. Rewritten copy, the code change, or the logging field to add. When proposing new wording, write it out in full.
+- **Confidence**: *verified* (you traced it in code or saw it rendered) or *suspected* (plausible, needs checking). Don't present suspicions as facts.
+
+Some deviations from textbook practice are deliberate and defensible (a forced choice with no N/A because the stimuli were pre-screened, a 7-point scale for comparability with earlier work). If the docs justify a choice, say so and don't count it as a defect. Also list briefly what the interface already does well, so the team knows what not to change.
+
+## Report template
+
+```markdown
+# Rating UI audit: <study name>
+
+Date, what was reviewed (commit, files, URL, screenshots), and what could not be checked.
+
+## Verdict
+One paragraph: ready to launch / launch after fixing N blockers / needs redesign. Name the blockers.
+
+## Study design as understood
+Constructs, conditions compared, assignment, raters, planned analysis. Mark anything inferred.
+
+## Findings
+### Blockers (confounds and data-integrity bugs)
+#### B1. <short title>
+- Where / What / Mechanism / Impact / Fix / Confidence
+
+### Major (noise or uniform bias that weakens conclusions)
+#### M1. ...
+
+### Minor
+#### m1. ...
+
+## What's already good
+Bullets.
+
+## HEDS completeness
+Table: field | status (documented / inferable / missing) | source or note.
+
+## Pre-launch checklist
+Ordered, checkable list of the fixes and the logging to add, blockers first.
+```
+
+Keep the findings sections ranked by impact, not by where you found them. Group duplicates (the same label problem on three questions is one finding).

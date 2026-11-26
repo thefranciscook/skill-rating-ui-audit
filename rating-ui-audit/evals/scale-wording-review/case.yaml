@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: scale-wording-review
+expected_outcome: |
+  A focused review of the three rating items and the 7-point anchor labels that identifies wording problems (e.g. double-barreled items, stem/anchor mismatch, inconsistent construct definitions, label ordering) and supplies full replacement wording.
