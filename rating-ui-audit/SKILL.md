@@ -1,6 +1,6 @@
 ---
 name: rating-ui-audit
-description: Audits custom human-evaluation and annotation web apps (React/HTML/CSS source, UI copy, screenshots, live URLs, and protocol or paper drafts) for measurement bias before data collection. Checks rating-scale design, anchor wording, layout and widget choice (matrix/grid vs item-by-item, sliders, stars, cards, responsive layouts), overdesign where web-UX instincts (visual hierarchy, auto-advance, color, gamification, compact layouts) hurt measurement, framing and anchoring effects, condition leakage (model names, file names, metadata), order and position effects, cognitive load, UI-caused data-integrity bugs, and HEDS (Human Evaluation Datasheet) reporting completeness. Use this whenever someone is about to launch a user study, crowdsourcing task, survey, preference test, or rating/labeling interface and wants to know whether the interface could bias or corrupt the data, or is designing or redesigning one, even if they only say "review my survey", "is my Likert scale OK", "is a matrix question fine here", "does this rating screen look right", "check the eval app before we send links", "will raters be biased", or "fill in HEDS for this study".
+description: Audits human-evaluation and annotation web apps (source code, UI copy, screenshots, live URLs, protocol or paper drafts) for measurement bias before data collection. Covers scale and anchor wording, layout and widget choice (matrix grids vs item-by-item, sliders, stars, responsive layouts), overdesign where web-UX habits like visual emphasis, auto-advance, color or gamification hurt measurement, condition leakage (model names, file names, metadata), order and position effects, cognitive load, UI-caused data-integrity bugs, and HEDS reporting completeness. Use whenever someone is launching, designing or redesigning a user study, survey, crowdsourcing task, preference test or rating/labeling interface, even if they only say "review my survey", "is this matrix question OK", "does the rating screen look right", "check the eval app before we send links", "will raters be biased", or "fill in HEDS for this study".
 ---
 
 # Rating UI Audit
@@ -32,7 +32,7 @@ Before looking at any UI, find out what's being compared and how the analysis wi
 
 If none of this is written down, infer it from the code and say that you inferred it. You need it to judge severity.
 
-Also find out whether data has already been collected: look for exports, cohort or participant files, analysis notebooks, incident notes, dated result folders. "Pre-launch" is often really "before the next wave". If earlier waves exist, two things change. Some bugs have already affected collected data, so say which, and how to recover it if possible (e.g. from a change log). And rewording items or changing the design now creates a second instrument, so recommend recording a design/scale version on every response and deciding up front whether waves will be pooled.
+Also find out whether data has already been collected: look for exports, cohort or participant files, analysis notebooks, incident notes, dated result folders. "Pre-launch" is often really "before the next wave". If earlier waves exist, two things change. Some bugs have already affected collected data, so say which, and how to recover it if possible (e.g. from a change log). And rewording items or changing the design now creates a second instrument, so recommend recording a design/scale version on every response and deciding up front whether waves will be pooled. Watch for collection order: if cultures, sites, or conditions are collected one after another, changing the layout or wording partway through confounds the change with whichever groups come later. The options are then to keep the instrument until collection ends, or change it and recollect everyone.
 
 ### 2. Build the instrument inventory
 
@@ -81,6 +81,10 @@ Read `references/layout-and-widgets.md` and go through the rating screen with it
 - **Interaction and chrome**: auto-advance, hover-only content, save toasts, progress, praise, timers, debug text on screen.
 - **Device equivalence**: does the layout change between desktop and phone, and does that make it a different instrument?
 - **The strip test**: list the elements that could be removed or made plain without losing anything, and sketch the minimum layout the judgment needs.
+
+Measure, don't eyeball. In the rendered page, read element geometry with `getBoundingClientRect()` (option column widths, gap before N/A, y-position of the first and last scale row against the viewport height, image sizes per device) and quote the numbers. Visual impressions of "set apart" or "fits on screen" are often wrong.
+
+If responses already exist, check the layout's effect in the data: the share of items where every dimension got the same value (compare with the rate you'd expect if a rater's dimensions were independent, e.g. by shuffling each rater's values across items), that rate per rater, inter-dimension correlations, answer order and time per item where logged. A grid that produces heavy non-differentiation from a few fast raters is a concrete finding; say also that observational data can't fully separate a layout effect from genuinely correlated constructs.
 
 When the layout question is the user's main concern, give a direct verdict on the format ("keep the grid / replace it with item-by-item blocks") with a concrete alternative layout, not just a list of issues.
 
