@@ -1,6 +1,6 @@
 ---
 name: rating-ui-audit
-description: Audits custom human-evaluation and annotation web apps (React/HTML/CSS source, UI copy, screenshots, live URLs, and protocol or paper drafts) for measurement bias before data collection. Checks rating-scale design, anchor wording, framing and anchoring effects, condition leakage (model names, file names, metadata), order and position effects, cognitive load, UI-caused data-integrity bugs, and HEDS (Human Evaluation Datasheet) reporting completeness. Use this whenever someone is about to launch a user study, crowdsourcing task, survey, preference test, or rating/labeling interface and wants to know whether the interface could bias or corrupt the data, even if they only say "review my survey", "is my Likert scale OK", "check the eval app before we send links", "will raters be biased", or "fill in HEDS for this study".
+description: Audits custom human-evaluation and annotation web apps (React/HTML/CSS source, UI copy, screenshots, live URLs, and protocol or paper drafts) for measurement bias before data collection. Checks rating-scale design, anchor wording, layout and widget choice (matrix/grid vs item-by-item, sliders, stars, cards, responsive layouts), overdesign where web-UX instincts (visual hierarchy, auto-advance, color, gamification, compact layouts) hurt measurement, framing and anchoring effects, condition leakage (model names, file names, metadata), order and position effects, cognitive load, UI-caused data-integrity bugs, and HEDS (Human Evaluation Datasheet) reporting completeness. Use this whenever someone is about to launch a user study, crowdsourcing task, survey, preference test, or rating/labeling interface and wants to know whether the interface could bias or corrupt the data, or is designing or redesigning one, even if they only say "review my survey", "is my Likert scale OK", "is a matrix question fine here", "does this rating screen look right", "check the eval app before we send links", "will raters be biased", or "fill in HEDS for this study".
 ---
 
 # Rating UI Audit
@@ -13,6 +13,8 @@ Sort every problem into one of two kinds, because they call for different urgenc
 
 - **Confound**: the bias is correlated with a condition being compared (model A vs B, culture X vs Y, with vs without reference). This changes conclusions. Example: system A's images always load slower, or the model name appears in the image URL raters can hover over.
 - **Noise or uniform bias**: it affects every condition the same way. It shrinks effect sizes, harms reliability, or makes absolute scores hard to interpret, but leaves relative comparisons mostly intact. Example: a double-barreled question, unclear midpoint label.
+
+A third lens runs through the whole audit: **an instrument is not a product.** Web-design instincts (compact grids, visual hierarchy, auto-advance, color coding, responsive reflow, delight) are tuned for speed and engagement. A rating screen is tuned for careful, independent judgments made under identical conditions. Anything on the screen that doesn't help the judgment is a possible cue, so a plainer layout is often the fix. `references/layout-and-widgets.md` develops this.
 
 A confound or a data-loss bug is a launch blocker. Uniform bias is usually worth fixing if it's cheap, and worth documenting if it isn't. Saying which kind each finding is is the most useful thing the report does; a flat list of 40 "issues" is not.
 
@@ -69,15 +71,28 @@ Report the numbers. "92% of simulated CHE participants see a repeated prompt" is
 
 Go through `references/anti-patterns.md`. It is organized by category (scale design, framing and anchoring, condition leakage, order and position, cognitive load, data integrity, protocol, device and accessibility). Each entry says what it looks like, why it biases, how to spot it in code, and the usual fix. Not every entry applies to every study; skip ones that don't and don't pad the report with them.
 
-### 5. Look at it rendered, if you can
+### 5. Review layout, widgets, and overdesign
 
-Layout bias often only shows up visually: one image larger than the other, the scale below the fold, labels wrapping on phones, a color gradient on the scale. If the app can run locally (check `package.json` / README for the dev command) or a URL is given, take screenshots at a desktop size and a phone size with Playwright and walk one item. Run it from a copy outside the repo, and never point it at the live database: intercept backend and image requests (Playwright `page.route`) and answer them from a small in-memory fake so you can complete items, reload mid-item, go back and forward, and simulate a failed save. Those flows (resume after reload, edit then navigate, offline save) are where data loss shows up. If it can't run at all, say so and note which checks therefore come only from reading code.
+Read `references/layout-and-widgets.md` and go through the rating screen with it. Treat this as its own step, not a side effect of reading code. Teams rarely question layout, and it shapes every response. Cover at least:
 
-### 6. HEDS completeness
+- **Widget choice**: is a matrix/grid, slider, star row, card, or dropdown the right format for these constructs, or should it be item-by-item? Say which and why.
+- **Option layout**: equal spacing and widths, where the anchor labels sit relative to the options, how N/A is separated, orientation.
+- **Stimulus presentation**: relative sizes, crop mode, frames, labels and warning badges, persistent context boxes, and whether all of this is identical across conditions.
+- **Interaction and chrome**: auto-advance, hover-only content, save toasts, progress, praise, timers, debug text on screen.
+- **Device equivalence**: does the layout change between desktop and phone, and does that make it a different instrument?
+- **The strip test**: list the elements that could be removed or made plain without losing anything, and sketch the minimum layout the judgment needs.
+
+When the layout question is the user's main concern, give a direct verdict on the format ("keep the grid / replace it with item-by-item blocks") with a concrete alternative layout, not just a list of issues.
+
+### 6. Look at it rendered, if you can
+
+Layout bias often only shows up visually: one image larger than the other, the scale below the fold, labels wrapping on phones, a color gradient on the scale. Take screenshots and look at them yourself as part of step 5. If the app can run locally (check `package.json` / README for the dev command) or a URL is given, take screenshots at a desktop size and a phone size with Playwright and walk one item. Run it from a copy outside the repo, and never point it at the live database: intercept backend and image requests (Playwright `page.route`) and answer them from a small in-memory fake so you can complete items, reload mid-item, go back and forward, and simulate a failed save. Those flows (resume after reload, edit then navigate, offline save) are where data loss shows up. If it can't run at all, say so and note which checks therefore come only from reading code.
+
+### 7. HEDS completeness
 
 Read `references/heds.md` and fill in each HEDS field from what the repo and docs say. Mark each field as *documented* (cite where), *inferable from code* (cite where, flag that it needs to be written down), or *missing*. Missing fields are a reporting gap, not a UI bug, so keep them out of the severity-ranked findings and give them their own section.
 
-### 7. Write the report
+### 8. Write the report
 
 Use the template below. Save it where the project keeps docs (check CLAUDE.md, .cursorrules, or similar for conventions such as a devlog folder); otherwise write `rating-ui-audit.md` at the repo root. If the user only asked a narrow question ("is my scale OK?"), answer that question with the relevant findings and skip the sections that don't apply.
 
@@ -117,6 +132,9 @@ Constructs, conditions compared, assignment, raters, planned analysis. Mark anyt
 
 ### Minor
 #### m1. ...
+
+## Layout and widgets
+Verdict on the response format (e.g. keep the grid / switch to item-by-item), the overdesign list from the strip test, device differences, and a sketch of the recommended minimal layout (ASCII wireframe or a short element list). Layout findings that are confounds or major also go in the ranked findings above; this section gives the overall picture.
 
 ## What's already good
 Bullets.

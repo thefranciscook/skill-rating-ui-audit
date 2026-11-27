@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: layout-widget-review
+expected_outcome: |
+  A layout-focused review of the rating screen that gives a clear verdict on the desktop matrix/grid format, explains its measurement risks for three distinct constructs, compares desktop and phone layouts, identifies overdesigned or emphasis-adding elements in the stimulus area, and proposes a concrete simpler layout.

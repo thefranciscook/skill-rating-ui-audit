@@ -8,6 +8,7 @@ rating-ui-audit/
 ├── SKILL.md                    # workflow, severity model, evidence standard, report template
 ├── references/
 │   ├── anti-patterns.md        # checklist: scale design, framing, leakage, order, load, data integrity, protocol, device
+│   ├── layout-and-widgets.md   # widget choice (matrix vs item-by-item, sliders, stars), option layout, stimulus presentation, overdesign
 │   └── heds.md                 # Human Evaluation Datasheet fields to fill / mark missing
 ├── scripts/
 │   └── extract_ui_text.py      # dumps UI copy + measurement-relevant code hotspots with file:line
